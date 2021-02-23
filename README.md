@@ -1,0 +1,1 @@
+# bsc-latest-post-redirect
