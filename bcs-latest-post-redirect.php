@@ -30,7 +30,12 @@ function bsc_get_latest_permalink() {
 
 // Create redirect using permalink
 function bsc_create_latest_redirect() {
-	add_rewrite_rule( 'latest', bsc_get_latest_permalink() );
+	$current_url = home_url($_SERVER['REQUEST_URI']);
+
+	if( strstr( $current_url, 'latest' ) ) {
+		wp_redirect( bsc_get_latest_permalink() );
+		exit;
+	}
 }
 add_action( 'init', 'bsc_create_latest_redirect' );
 
