@@ -28,7 +28,7 @@ function bsc_get_latest_permalink() {
 	
 	$latest_post = get_posts( $args );
 	$latest_id = wp_list_pluck( $latest_post, 'ID' );
-	return get_permalink( $latest_id[0] );
+	return ( ! empty( $latest_id[0] ) ) ? get_permalink( $latest_id[0] ) : get_home_url(); 
 }
 
 // Create redirect using permalink
