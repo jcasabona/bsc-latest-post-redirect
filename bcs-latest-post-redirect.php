@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Get latest post permalink
  * @return String $url
 **/
+
 function bsc_get_latest_permalink() {
 	$args = array( 
 		'numberposts' => '1',
@@ -30,13 +31,11 @@ function bsc_get_latest_permalink() {
 
 // Create redirect using permalink
 function bsc_create_latest_redirect() {
-	$current_url = home_url($_SERVER['REQUEST_URI']);
+	$current_url = home_url( $_SERVER['REQUEST_URI'] );
 
-	if( strstr( $current_url, 'latest' ) ) {
+	if( 1 === preg_match( '%latest$%', $current_url ) ) {
 		wp_redirect( bsc_get_latest_permalink() );
 		exit;
 	}
 }
 add_action( 'init', 'bsc_create_latest_redirect' );
-
-// On post publish, re-create permalink
