@@ -35,7 +35,7 @@ function bsc_get_latest_permalink() {
 function bsc_create_latest_redirect() {
 	$current_url = home_url( $_SERVER['REQUEST_URI'] );
 
-	if( 1 === preg_match( '%latest$%', $current_url ) ) {
+	if( 1 === preg_match( '%latest(/*)%', $current_url ) ) {
 		wp_redirect( bsc_get_latest_permalink() );
 		exit;
 	}
