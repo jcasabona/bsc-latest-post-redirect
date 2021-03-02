@@ -23,6 +23,8 @@ function bsc_get_latest_permalink() {
 	$args = array( 
 		'numberposts' => '1',
 	);
+
+	//@TODO: Option to sortby 'modified' date
 	
 	$latest_post = get_posts( $args );
 	$latest_id = wp_list_pluck( $latest_post, 'ID' );
