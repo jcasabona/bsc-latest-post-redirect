@@ -110,4 +110,4 @@ function bsc_create_latest_redirect() {
 	wp_safe_redirect( bsc_get_latest_permalink( $category ), 302 );
 	exit;
 }
-add_action( 'template_redirect', 'bsc_create_latest_redirect' );
+add_action( 'template_redirect', 'bsc_create_latest_redirect', 1 );
