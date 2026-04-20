@@ -89,14 +89,14 @@ function bsc_create_latest_redirect() {
 	$segments = explode( '/', $path );
 	$category = isset( $segments[1] ) ? sanitize_title( $segments[1] ) : '';
 
-	if ( '' === $category ) {
-		$query_string = (string) wp_parse_url( $request, PHP_URL_QUERY );
-		if ( '' !== $query_string ) {
-			parse_str( $query_string, $query_args );
-			if ( ! empty( $query_args['category'] ) ) {
-				$category = sanitize_title( wp_unslash( $query_args['category'] ) );
-			}
-		}
+	$query_args   = array();
+	$query_string = (string) wp_parse_url( $request, PHP_URL_QUERY );
+	if ( '' !== $query_string ) {
+		parse_str( $query_string, $query_args );
+	}
+
+	if ( '' === $category && ! empty( $query_args['category'] ) ) {
+		$category = sanitize_title( wp_unslash( $query_args['category'] ) );
 	}
 
 	if ( '' !== $category ) {
@@ -106,8 +106,21 @@ function bsc_create_latest_redirect() {
 		}
 	}
 
+	$destination = bsc_get_latest_permalink( $category );
+
+	$utm_params = array();
+	foreach ( $query_args as $key => $value ) {
+		if ( is_string( $key ) && 0 === strpos( $key, 'utm_' ) && is_scalar( $value ) ) {
+			$utm_params[ $key ] = sanitize_text_field( wp_unslash( (string) $value ) );
+		}
+	}
+
+	if ( ! empty( $utm_params ) ) {
+		$destination = add_query_arg( $utm_params, $destination );
+	}
+
 	nocache_headers();
-	wp_safe_redirect( bsc_get_latest_permalink( $category ), 302 );
+	wp_safe_redirect( $destination, 302 );
 	exit;
 }
 add_action( 'template_redirect', 'bsc_create_latest_redirect', 1 );
