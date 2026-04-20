@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Latest Post Redirect
  * Plugin URI:        https://github.com/jcasabona/bsc-latest-post-redirect
- * Description:       Creates a /latest redirect that sends users to the most recently published (or modified) blog post.
- * Version:           1.1.0
+ * Description:       Creates a /latest redirect that sends users to the most recently published (or modified) blog post. Supports /latest/{category} (e.g. /latest/articles, /latest/episodes).
+ * Version:           1.2.0
  * Author:            Joe Casabona
  * Author URI:        https://casabona.org/
  * License:           GPL-2.0+
@@ -17,16 +17,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Get the permalink of the latest post.
+ * Allowed category slugs for /latest/{category} redirects.
+ *
+ * Filterable via `bsc_latest_allowed_categories`.
+ *
+ * @return string[]
+ */
+function bsc_get_allowed_categories() {
+	$defaults = array( 'articles', 'episodes' );
+	$allowed  = apply_filters( 'bsc_latest_allowed_categories', $defaults );
+
+	return array_values( array_filter( array_map( 'sanitize_title', (array) $allowed ) ) );
+}
+
+/**
+ * Get the permalink of the latest post, optionally scoped to a category slug.
  *
  * Orderby can be filtered via `bsc_latest_orderby` ('date' or 'modified').
  *
+ * @param string $category Category slug, or empty for all posts.
  * @return string
  */
-function bsc_get_latest_permalink() {
+function bsc_get_latest_permalink( $category = '' ) {
 	$orderby = apply_filters( 'bsc_latest_orderby', 'date' );
 
-	$query = new WP_Query( array(
+	$args = array(
 		'post_type'              => 'post',
 		'post_status'            => 'publish',
 		'posts_per_page'         => 1,
@@ -36,7 +51,13 @@ function bsc_get_latest_permalink() {
 		'update_post_meta_cache' => false,
 		'update_post_term_cache' => false,
 		'fields'                 => 'ids',
-	) );
+	);
+
+	if ( '' !== $category ) {
+		$args['category_name'] = $category;
+	}
+
+	$query = new WP_Query( $args );
 
 	if ( empty( $query->posts ) ) {
 		return home_url( '/' );
@@ -46,7 +67,7 @@ function bsc_get_latest_permalink() {
 }
 
 /**
- * Redirect /latest to the most recent post.
+ * Redirect /latest (and /latest/{category}) to the most recent matching post.
  */
 function bsc_create_latest_redirect() {
 	if ( is_admin() || wp_doing_ajax() || wp_doing_cron()
@@ -58,18 +79,35 @@ function bsc_create_latest_redirect() {
 		return;
 	}
 
-	$path = wp_parse_url(
-		esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ),
-		PHP_URL_PATH
-	);
-	$path = trim( (string) $path, '/' );
+	$request = esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+	$path    = trim( (string) wp_parse_url( $request, PHP_URL_PATH ), '/' );
 
-	if ( 'latest' !== $path ) {
+	if ( 'latest' !== $path && 0 !== strpos( $path, 'latest/' ) ) {
 		return;
 	}
 
+	$segments = explode( '/', $path );
+	$category = isset( $segments[1] ) ? sanitize_title( $segments[1] ) : '';
+
+	if ( '' === $category ) {
+		$query_string = (string) wp_parse_url( $request, PHP_URL_QUERY );
+		if ( '' !== $query_string ) {
+			parse_str( $query_string, $query_args );
+			if ( ! empty( $query_args['category'] ) ) {
+				$category = sanitize_title( wp_unslash( $query_args['category'] ) );
+			}
+		}
+	}
+
+	if ( '' !== $category ) {
+		$allowed = bsc_get_allowed_categories();
+		if ( ! empty( $allowed ) && ! in_array( $category, $allowed, true ) ) {
+			return;
+		}
+	}
+
 	nocache_headers();
-	wp_safe_redirect( bsc_get_latest_permalink(), 302 );
+	wp_safe_redirect( bsc_get_latest_permalink( $category ), 302 );
 	exit;
 }
 add_action( 'template_redirect', 'bsc_create_latest_redirect' );
